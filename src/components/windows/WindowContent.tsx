@@ -20,17 +20,19 @@ export function WindowContent({ win, isActive }: WindowContentProps) {
   const focusWindow = useWindowStore((s) => s.focusWindow);
   const registeredRef = useRef(false);
 
+  const entryUrl = def.entryUrl ?? def.url;
+
   const iframeRefCallback = useCallback(
     (node: HTMLIFrameElement | null) => {
-      if (node && def.url) {
-        osMessageRouter.registerIframe(win.windowId, win.appId, node, def.url);
+      if (node && entryUrl) {
+        osMessageRouter.registerIframe(win.windowId, win.appId, node, entryUrl);
         registeredRef.current = true;
       } else if (!node && registeredRef.current) {
         osMessageRouter.unregisterIframe(win.windowId);
         registeredRef.current = false;
       }
     },
-    [win.windowId, win.appId, def.url],
+    [win.windowId, win.appId, entryUrl],
   );
 
   useEffect(() => {
@@ -51,7 +53,7 @@ export function WindowContent({ win, isActive }: WindowContentProps) {
     }
   }
 
-  if (def.runtime === 'spec' || !def.url) {
+  if (def.runtime === 'spec' || !entryUrl) {
     return <SpecCardApp appId={win.appId} />;
   }
 
@@ -59,7 +61,7 @@ export function WindowContent({ win, isActive }: WindowContentProps) {
     <div className="relative h-full w-full overflow-hidden bg-[#0e1217]">
       <iframe
         ref={iframeRefCallback}
-        src={def.url}
+        src={entryUrl}
         title={def.name}
         data-testid={`app-iframe-${win.appId}`}
         data-window-id={win.windowId}

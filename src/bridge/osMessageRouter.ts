@@ -1,6 +1,7 @@
 import {
-  getRegisteredAppOrigins,
+  APP_LIST,
   isRegisteredAppId,
+  type AppDefinition,
   type AppId,
 } from '../registry/apps';
 import {
@@ -23,6 +24,36 @@ export interface OriginAllowlistConfig {
 }
 
 const LOCALHOST_DEV_REGEX = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i;
+
+/**
+ * Automatically extracts the exact `new URL(entryUrl).origin` of every live
+ * registered app (supporting relative fallback entry URLs when baseOrigin is supplied).
+ */
+export function extractLiveAppOrigins(
+  apps: readonly AppDefinition[] = APP_LIST,
+  baseOrigin?: string,
+): string[] {
+  const origins = new Set<string>();
+  for (const app of apps) {
+    if (app.status !== 'live') continue;
+    const entryUrl = app.entryUrl ?? app.url;
+    if (!entryUrl) continue;
+    try {
+      const parsed = baseOrigin
+        ? new URL(entryUrl, baseOrigin)
+        : new URL(entryUrl);
+      if (
+        (parsed.protocol === 'http:' || parsed.protocol === 'https:') &&
+        parsed.origin !== 'null'
+      ) {
+        origins.add(parsed.origin);
+      }
+    } catch {
+      // Ignore relative path without baseOrigin or invalid URL
+    }
+  }
+  return Array.from(origins);
+}
 
 /**
  * Evaluates whether a postMessage event origin is permitted by the strict
@@ -132,7 +163,7 @@ function getDefaultOriginConfig(): OriginAllowlistConfig {
 
   return {
     hostOrigin,
-    registeredOrigins: getRegisteredAppOrigins(),
+    registeredOrigins: extractLiveAppOrigins(APP_LIST, hostOrigin),
     isDev,
     allowedOriginRegex,
   };
@@ -142,6 +173,10 @@ const EXTERNAL_APP_ID_ALIASES: Record<string, AppId> = {
   'feasibility-calc': 'feaso-os',
   'feaso-calc': 'feaso-os',
   cutsheet: 'cutsheet-au',
+  formgen: 'formgen-au',
+  'enviro-sim': 'enviro-sim-au',
+  envirosim: 'enviro-sim-au',
+  'envirosim-au': 'enviro-sim-au',
 };
 
 function resolveBridgeAppId(rawId: string | undefined): AppId | null {

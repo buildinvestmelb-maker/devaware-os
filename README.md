@@ -18,12 +18,12 @@ A KDE Plasma 6 / Kubuntu-inspired interactive web desktop for Australia-wide pro
 
 ## Registered Apps
 
-| App ID | Name | Category | Status |
+| App ID | Name | Category | Status / Entry URL |
 | :--- | :--- | :--- | :--- |
 | `cutsheet-au` | CutSheet AU | Terrain & Civil | Live (`VITE_CUTSHEET_URL` or `/mock-apps/cutsheet.html`) |
-| `feaso-os` | Feaso OS | Feasibility | Live (`/mock-apps/feaso.html`) |
-| `formgen-au` | FormGen AU | Massing & Yield | Coming Soon Spec |
-| `enviro-sim-au` | EnviroSim AU | Environment & Risk | Coming Soon Spec |
+| `feaso-os` | Feaso OS | Feasibility | Live (`VITE_FEASO_URL` or `/mock-apps/feaso.html`) |
+| `formgen-au` | FormGen AU | Massing & Yield | Live when `VITE_FORMGEN_URL` is set, else Coming Soon Spec |
+| `enviro-sim-au` | EnviroSim AU | Environment & Risk | Live when `VITE_ENVIRO_URL` is set, else Coming Soon Spec |
 | `file-explorer` | Projects (AU) | System | Built-in React |
 | `project-inspector` | Project Inspector | System | Built-in React |
 

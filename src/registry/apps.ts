@@ -34,7 +34,9 @@ export interface AppDefinition {
     width: number;
     height: number;
   };
-  /** Iframe source URL for live micro-apps. */
+  /** Canonical iframe entry URL for live micro-apps. */
+  entryUrl?: string;
+  /** Backwards-compatible alias for entryUrl. */
   url?: string;
   /** Public GitHub repository for source transparency. */
   repoUrl?: string;
@@ -56,166 +58,190 @@ export interface AppDefinition {
   roadmapNote?: string;
 }
 
-const cutsheetEnvUrl =
-  typeof import.meta !== 'undefined' &&
-  import.meta.env &&
-  typeof import.meta.env.VITE_CUTSHEET_URL === 'string' &&
-  import.meta.env.VITE_CUTSHEET_URL.trim().length > 0
-    ? import.meta.env.VITE_CUTSHEET_URL.trim()
-    : '/mock-apps/cutsheet.html';
+export interface AppEnvConfig {
+  VITE_CUTSHEET_URL?: string;
+  VITE_FEASO_URL?: string;
+  VITE_FORMGEN_URL?: string;
+  VITE_ENVIRO_URL?: string;
+}
 
-const feasoEnvUrl =
-  typeof import.meta !== 'undefined' &&
-  import.meta.env &&
-  typeof import.meta.env.VITE_FEASO_URL === 'string' &&
-  import.meta.env.VITE_FEASO_URL.trim().length > 0
-    ? import.meta.env.VITE_FEASO_URL.trim()
-    : '/mock-apps/feaso.html';
+function normalizeEnvUrl(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
 
-export const APP_REGISTRY: Record<AppId, AppDefinition> = {
-  'cutsheet-au': {
-    id: 'cutsheet-au',
-    name: 'CutSheet AU',
-    shortName: 'CutSheet',
-    description:
-      'GDA2020 / MGA2020 bulk earthworks, cut-and-fill balancing, retaining allowance, and terrain grading workbench.',
-    category: 'Terrain & Civil',
-    runtime: 'iframe',
-    status: 'live',
-    singleInstance: true,
-    defaultSize: { width: 980, height: 640 },
-    minSize: { width: 460, height: 360 },
-    url: cutsheetEnvUrl,
-    repoUrl: 'https://github.com/devaware-au/cutsheet-au',
-    isIndustryApp: true,
-    defaultPinned: true,
-    icon: 'mountain',
-    capabilities: [
-      'Auto MGA2020 Zones 49–56 (EPSG:7849–7856)',
-      'Cut / Fill volume & net import-export balance (m³)',
-      'Direct PROJECT_PATCH sync into Feaso OS',
-      'WebGL render-loop pause on background blur',
-    ],
-  },
-  'feaso-os': {
-    id: 'feaso-os',
-    name: 'Feaso OS',
-    shortName: 'Feaso OS',
-    description:
-      'Australia-wide metric AUD feasibility and Residual Land Value engine with state statutory transfer duty & levy contexts.',
-    category: 'Feasibility',
-    runtime: 'iframe',
-    status: 'live',
-    singleInstance: false,
-    defaultSize: { width: 820, height: 580 },
-    minSize: { width: 420, height: 340 },
-    url: feasoEnvUrl,
-    repoUrl: 'https://github.com/devaware-au/feaso-os',
-    isIndustryApp: true,
-    defaultPinned: true,
-    icon: 'calculator',
-    capabilities: [
-      'State-aware statutory labels (NSW, VIC, QLD, WA, SA, TAS, ACT, NT)',
-      'Live Residual Land Value (AUD) reactive to civil patches',
-      'Margin scheme & target profit-on-cost sensitivity',
-      'Metric $/m² land & construction benchmarking',
-    ],
-  },
-  'formgen-au': {
-    id: 'formgen-au',
-    name: 'FormGen AU',
-    shortName: 'FormGen',
-    description:
-      'Parametric Australian lot subdivision, apartment envelope generator, FSR & setback compliance massing engine.',
-    category: 'Massing & Yield',
-    runtime: 'spec',
-    status: 'coming-soon',
-    singleInstance: true,
-    defaultSize: { width: 920, height: 620 },
-    minSize: { width: 480, height: 360 },
-    repoUrl: 'https://github.com/devaware-au/formgen-au',
-    isIndustryApp: true,
-    defaultPinned: false,
-    icon: 'blocks',
-    capabilities: [
-      'State LEP / Planning Scheme envelope presets',
-      'Automated lot yield & Net Saleable Area (m²) schedules',
-      'GFA / FSR / solar access envelope testing',
-      'Single-instance WebGL viewport with OS_RENDER_STATE',
-    ],
-    roadmapNote:
-      'Contract-locked against SiteProject.massing. Next open-source module on the devaware-au roadmap.',
-  },
-  'enviro-sim-au': {
-    id: 'enviro-sim-au',
-    name: 'EnviroSim AU',
-    shortName: 'EnviroSim',
-    description:
-      'AS 3959 Bushfire Attack Level (BAL), overland flood constraint, biodiversity offset (ha), and solar microclimate simulator.',
-    category: 'Environment & Risk',
-    runtime: 'spec',
-    status: 'coming-soon',
-    singleInstance: true,
-    defaultSize: { width: 920, height: 620 },
-    minSize: { width: 480, height: 360 },
-    repoUrl: 'https://github.com/devaware-au/enviro-sim-au',
-    isIndustryApp: true,
-    defaultPinned: false,
-    icon: 'wind',
-    capabilities: [
-      'AS 3959 BAL setback & vegetation slope screening',
-      '1% AEP flood overlay & exclusion mask export',
-      'AS/NZS 1170.2 Wind Regions A–D & NatHERS climate zones',
-      'Single-instance WebGL solver with OS_RENDER_STATE',
-    ],
-    roadmapNote:
-      'Contract-locked against SiteProject.environment & exclusionMasksGeoJson.',
-  },
-  'file-explorer': {
-    id: 'file-explorer',
-    name: 'Projects (AU)',
-    shortName: 'Projects (AU)',
-    description:
-      'National Australian state & territory repository for .deal site workspaces with GDA2020 MGA zone resolution.',
-    category: 'System',
-    runtime: 'builtin',
-    status: 'live',
-    singleInstance: true,
-    defaultSize: { width: 860, height: 540 },
-    minSize: { width: 520, height: 360 },
-    repoUrl: 'https://github.com/buildinvestmelb-maker/devaware-os',
-    isIndustryApp: false,
-    defaultPinned: true,
-    icon: 'folder',
-    capabilities: [
-      'Browse NSW, VIC, QLD, WA, SA, TAS, ACT & NT deal folders',
-      'Double-click .deal files to tile CutSheet AU + Feaso OS',
-      'Auto-computes GDA2020 MGA zone from site coordinates',
-    ],
-  },
-  'project-inspector': {
-    id: 'project-inspector',
-    name: 'Project Inspector',
-    shortName: 'Inspector',
-    description:
-      'Live JSON inspector for the active SiteProject store and real-time @devaware/os-bridge postMessage bus monitor.',
-    category: 'System',
-    runtime: 'builtin',
-    status: 'live',
-    singleInstance: true,
-    defaultSize: { width: 780, height: 540 },
-    minSize: { width: 460, height: 340 },
-    repoUrl: 'https://github.com/buildinvestmelb-maker/devaware-os',
-    isIndustryApp: false,
-    defaultPinned: true,
-    icon: 'terminal',
-    capabilities: [
-      'Live SiteProject JSON inspection & quick copy',
-      'Real-time message bus trace (inbound, outbound, rejected origins)',
-      'Origin allowlist diagnostics for embedded app developers',
-    ],
-  },
-};
+export function createAppRegistry(
+  env: AppEnvConfig,
+): Record<AppId, AppDefinition> {
+  const cutsheetUrl =
+    normalizeEnvUrl(env.VITE_CUTSHEET_URL) || '/mock-apps/cutsheet.html';
+  const feasoUrl =
+    normalizeEnvUrl(env.VITE_FEASO_URL) || '/mock-apps/feaso.html';
+  const formgenUrl = normalizeEnvUrl(env.VITE_FORMGEN_URL);
+  const enviroUrl = normalizeEnvUrl(env.VITE_ENVIRO_URL);
+
+  return {
+    'cutsheet-au': {
+      id: 'cutsheet-au',
+      name: 'CutSheet AU',
+      shortName: 'CutSheet',
+      description:
+        'GDA2020 / MGA2020 bulk earthworks, cut-and-fill balancing, retaining allowance, and terrain grading workbench.',
+      category: 'Terrain & Civil',
+      runtime: 'iframe',
+      status: 'live',
+      singleInstance: true,
+      defaultSize: { width: 980, height: 640 },
+      minSize: { width: 460, height: 360 },
+      entryUrl: cutsheetUrl,
+      url: cutsheetUrl,
+      repoUrl: 'https://github.com/devaware-au/cutsheet-au',
+      isIndustryApp: true,
+      defaultPinned: true,
+      icon: 'mountain',
+      capabilities: [
+        'Auto MGA2020 Zones 49–56 (EPSG:7849–7856)',
+        'Cut / Fill volume & net import-export balance (m³)',
+        'Direct PROJECT_PATCH sync into Feaso OS',
+        'WebGL render-loop pause on background blur',
+      ],
+    },
+    'feaso-os': {
+      id: 'feaso-os',
+      name: 'Feaso OS',
+      shortName: 'Feaso OS',
+      description:
+        'Australia-wide metric AUD feasibility and Residual Land Value engine with state statutory transfer duty & levy contexts.',
+      category: 'Feasibility',
+      runtime: 'iframe',
+      status: 'live',
+      singleInstance: false,
+      defaultSize: { width: 820, height: 580 },
+      minSize: { width: 420, height: 340 },
+      entryUrl: feasoUrl,
+      url: feasoUrl,
+      repoUrl: 'https://github.com/devaware-au/feaso-os',
+      isIndustryApp: true,
+      defaultPinned: true,
+      icon: 'calculator',
+      capabilities: [
+        'State-aware statutory labels (NSW, VIC, QLD, WA, SA, TAS, ACT, NT)',
+        'Live Residual Land Value (AUD) reactive to civil patches',
+        'Margin scheme & target profit-on-cost sensitivity',
+        'Metric $/m² land & construction benchmarking',
+      ],
+    },
+    'formgen-au': {
+      id: 'formgen-au',
+      name: 'FormGen AU',
+      shortName: 'FormGen',
+      description:
+        'Parametric Australian lot subdivision, apartment envelope generator, FSR & setback compliance massing engine.',
+      category: 'Massing & Yield',
+      runtime: formgenUrl ? 'iframe' : 'spec',
+      status: formgenUrl ? 'live' : 'coming-soon',
+      singleInstance: true,
+      defaultSize: { width: 920, height: 620 },
+      minSize: { width: 480, height: 360 },
+      entryUrl: formgenUrl,
+      url: formgenUrl,
+      repoUrl: 'https://github.com/devaware-au/formgen-au',
+      isIndustryApp: true,
+      defaultPinned: false,
+      icon: 'blocks',
+      capabilities: [
+        'State LEP / Planning Scheme envelope presets',
+        'Automated lot yield & Net Saleable Area (m²) schedules',
+        'GFA / FSR / solar access envelope testing',
+        'Single-instance WebGL viewport with OS_RENDER_STATE',
+      ],
+      roadmapNote: formgenUrl
+        ? undefined
+        : 'Contract-locked against SiteProject.massing. Next open-source module on the devaware-au roadmap.',
+    },
+    'enviro-sim-au': {
+      id: 'enviro-sim-au',
+      name: 'EnviroSim AU',
+      shortName: 'EnviroSim',
+      description:
+        'AS 3959 Bushfire Attack Level (BAL), overland flood constraint, biodiversity offset (ha), and solar microclimate simulator.',
+      category: 'Environment & Risk',
+      runtime: enviroUrl ? 'iframe' : 'spec',
+      status: enviroUrl ? 'live' : 'coming-soon',
+      singleInstance: true,
+      defaultSize: { width: 920, height: 620 },
+      minSize: { width: 480, height: 360 },
+      entryUrl: enviroUrl,
+      url: enviroUrl,
+      repoUrl: 'https://github.com/devaware-au/enviro-sim-au',
+      isIndustryApp: true,
+      defaultPinned: false,
+      icon: 'wind',
+      capabilities: [
+        'AS 3959 BAL setback & vegetation slope screening',
+        '1% AEP flood overlay & exclusion mask export',
+        'AS/NZS 1170.2 Wind Regions A–D & NatHERS climate zones',
+        'Single-instance WebGL solver with OS_RENDER_STATE',
+      ],
+      roadmapNote: enviroUrl
+        ? undefined
+        : 'Contract-locked against SiteProject.environment & exclusionMasksGeoJson.',
+    },
+    'file-explorer': {
+      id: 'file-explorer',
+      name: 'Projects (AU)',
+      shortName: 'Projects (AU)',
+      description:
+        'National Australian state & territory repository for .deal site workspaces with GDA2020 MGA zone resolution.',
+      category: 'System',
+      runtime: 'builtin',
+      status: 'live',
+      singleInstance: true,
+      defaultSize: { width: 860, height: 540 },
+      minSize: { width: 520, height: 360 },
+      repoUrl: 'https://github.com/buildinvestmelb-maker/devaware-os',
+      isIndustryApp: false,
+      defaultPinned: true,
+      icon: 'folder',
+      capabilities: [
+        'Browse NSW, VIC, QLD, WA, SA, TAS, ACT & NT deal folders',
+        'Double-click .deal files to tile CutSheet AU + Feaso OS',
+        'Auto-computes GDA2020 MGA zone from site coordinates',
+      ],
+    },
+    'project-inspector': {
+      id: 'project-inspector',
+      name: 'Project Inspector',
+      shortName: 'Inspector',
+      description:
+        'Live JSON inspector for the active SiteProject store and real-time @devaware/os-bridge postMessage bus monitor.',
+      category: 'System',
+      runtime: 'builtin',
+      status: 'live',
+      singleInstance: true,
+      defaultSize: { width: 780, height: 540 },
+      minSize: { width: 460, height: 340 },
+      repoUrl: 'https://github.com/buildinvestmelb-maker/devaware-os',
+      isIndustryApp: false,
+      defaultPinned: true,
+      icon: 'terminal',
+      capabilities: [
+        'Live SiteProject JSON inspection & quick copy',
+        'Real-time message bus trace (inbound, outbound, rejected origins)',
+        'Origin allowlist diagnostics for embedded app developers',
+      ],
+    },
+  };
+}
+
+// Explicit static import.meta.env property access so Vite statically replaces each Vercel env var at build time.
+export const APP_REGISTRY: Record<AppId, AppDefinition> = createAppRegistry({
+  VITE_CUTSHEET_URL: import.meta.env.VITE_CUTSHEET_URL,
+  VITE_FEASO_URL: import.meta.env.VITE_FEASO_URL,
+  VITE_FORMGEN_URL: import.meta.env.VITE_FORMGEN_URL,
+  VITE_ENVIRO_URL: import.meta.env.VITE_ENVIRO_URL,
+});
 
 export const APP_LIST: AppDefinition[] = Object.values(APP_REGISTRY);
 
@@ -236,19 +262,30 @@ export function isRegisteredAppId(id: string): id is AppId {
 }
 
 /**
- * Extracts explicit external origins registered for live iframe apps
- * (excluding relative same-origin paths like /mock-apps/...).
+ * Extracts exact origins via `new URL(entryUrl, baseOrigin).origin` for every
+ * live registered app that defines an entry URL.
  */
-export function getRegisteredAppOrigins(): string[] {
+export function getRegisteredAppOrigins(
+  apps: readonly AppDefinition[] = APP_LIST,
+  baseOrigin?: string,
+): string[] {
   const origins = new Set<string>();
-  for (const app of APP_LIST) {
-    if (!app.url) continue;
+  for (const app of apps) {
+    if (app.status !== 'live') continue;
+    const entryUrl = app.entryUrl ?? app.url;
+    if (!entryUrl) continue;
     try {
-      if (app.url.startsWith('http://') || app.url.startsWith('https://')) {
-        origins.add(new URL(app.url).origin);
+      const parsed = baseOrigin
+        ? new URL(entryUrl, baseOrigin)
+        : new URL(entryUrl);
+      if (
+        (parsed.protocol === 'http:' || parsed.protocol === 'https:') &&
+        parsed.origin !== 'null'
+      ) {
+        origins.add(parsed.origin);
       }
     } catch {
-      // Ignore malformed env URL
+      // Relative path without baseOrigin or malformed URL: ignore safely
     }
   }
   return Array.from(origins);
