@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en-AU">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Feaso OS — Australian Metric Feasibility</title>
+    <style>
+      :root {
+        --bg: #10141a;
+        --surface: #161c24;
+        --border: rgba(214, 226, 240, 0.12);
+        --accent: #3daee9;
+        --emerald: #34d399;
+        --amber: #f59e0b;
+        --text: #e6edf3;
+        --muted: #93a1b2;
+        --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        --sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        min-height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .app {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        padding: 16px;
+        max-width: 960px;
+        margin: 0 auto;
+      }
+
+      .header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .title-block h1 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+
+      .subtitle {
+        margin-top: 3px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 600;
+        border: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .pill-state {
+        color: #6ee7b7;
+        border-color: rgba(52, 211, 153, 0.35);
+        background: rgba(16, 185, 129, 0.12);
+      }
+
+      .pill-active {
+        color: #7dd3fc;
+        border-color: rgba(61, 174, 233, 0.38);
+        background: rgba(61, 174, 233, 0.14);
+      }
+
+      .pill-paused {
+        color: #fcd34d;
+        border-color: rgba(245, 158, 11, 0.38);
+        background: rgba(245, 158, 11, 0.14);
+      }
+
+      .hero-card {
+        background: linear-gradient(135deg, #16242c 0%, #141a22 70%);
+        border: 1px solid rgba(52, 211, 153, 0.28);
+        border-radius: 14px;
+        padding: 18px;
+        transition: border-color 220ms ease;
+      }
+
+      .hero-card.flash {
+        border-color: rgba(61, 174, 233, 0.85);
+      }
+
+      .hero-top {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+      }
+
+      .rlv-value {
+        margin-top: 8px;
+        font-family: var(--mono);
+        font-size: 32px;
+        font-weight: 700;
+        color: #6ee7b7;
+        letter-spacing: -0.02em;
+      }
+
+      .rlv-subgrid {
+        margin-top: 12px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(214, 226, 240, 0.1);
+      }
+
+      .sub-k {
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .sub-v {
+        margin-top: 2px;
+        font-family: var(--mono);
+        font-size: 13px;
+        font-weight: 600;
+        color: #fff;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 12px;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px;
+      }
+
+      .card-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+
+      .row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 10px;
+        padding: 7px 0;
+        border-bottom: 1px solid rgba(214, 226, 240, 0.07);
+        font-size: 12px;
+      }
+
+      .row:last-child {
+        border-bottom: none;
+      }
+
+      .row .k {
+        color: #cbd5e1;
+      }
+
+      .row .v {
+        font-family: var(--mono);
+        font-weight: 600;
+        color: #fff;
+        text-align: right;
+      }
+
+      .statutory-box {
+        border-radius: 9px;
+        background: #10161e;
+        border: 1px solid rgba(61, 174, 233, 0.2);
+        padding: 10px 12px;
+        font-size: 12px;
+        line-height: 1.5;
+        color: #cbd5e1;
+      }
+
+      .statutory-title {
+        font-weight: 600;
+        color: #7dd3fc;
+        margin-bottom: 4px;
+      }
+
+      .sync-pill {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: #7dd3fc;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <header class="header">
+        <div class="title-block">
+          <h1 id="feaso-site-name">Awaiting SiteProject...</h1>
+          <div class="subtitle" id="feaso-site-meta">
+            Metric AUD Residual Land Value Engine
+          </div>
+        </div>
+
+        <div class="badges">
+          <span class="pill pill-state" id="feaso-state-badge">AU • --</span>
+          <span
+            class="pill pill-active"
+            id="feaso-render-badge"
+            data-testid="render-loop-badge"
+            data-render-state="ACTIVE"
+          >
+            Render Loop: ACTIVE
+          </span>
+        </div>
+      </header>
+
+      <section class="hero-card" id="rlv-card">
+        <div class="hero-top">
+          <span>Residual Land Value (Metric AUD • Excl. GST Margin Scheme)</span>
+          <span class="sync-pill" id="feaso-sync-badge">Awaiting sync</span>
+        </div>
+        <div
+          class="rlv-value"
+          id="rlv-value"
+          data-testid="rlv-value"
+          data-rlv-aud="0"
+        >
+          $0 AUD
+        </div>
+
+        <div class="rlv-subgrid">
+          <div>
+            <div class="sub-k">RLV / m² (Gross Site)</div>
+            <div class="sub-v" id="rlv-per-sqm">$0 / m²</div>
+          </div>
+          <div>
+            <div class="sub-k">RLV / Hectare</div>
+            <div class="sub-v" id="rlv-per-ha">$0 / ha</div>
+          </div>
+          <div>
+            <div class="sub-k">Target Dev Margin</div>
+            <div class="sub-v" id="target-margin">20.0%</div>
+          </div>
+          <div>
+            <div class="sub-k">Synced Earthworks Cost</div>
+            <div class="sub-v" id="synced-earthworks" style="color: #7dd3fc;">
+              $0
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="grid">
+        <section class="card">
+          <div class="card-label">Development Cashflow Summary (AUD)</div>
+          <div class="row">
+            <span class="k">Gross Realisation (GRV)</span>
+            <span class="v" id="row-grv">$0</span>
+          </div>
+          <div class="row">
+            <span class="k">Base Construction &amp; Soft Costs</span>
+            <span class="v" id="row-base-cost">$0</span>
+          </div>
+          <div class="row">
+            <span class="k">Bulk Earthworks (CutSheet Sync)</span>
+            <span class="v" id="row-bulk-ew">$0</span>
+          </div>
+          <div class="row">
+            <span class="k">Retaining Walls (CutSheet Sync)</span>
+            <span class="v" id="row-retaining">$0</span>
+          </div>
+          <div class="row">
+            <span class="k" id="row-statutory-label">Statutory Contributions</span>
+            <span class="v" id="row-statutory">$0</span>
+          </div>
+          <div class="row">
+            <span class="k" id="row-duty-label">State Transfer Duty Rate</span>
+            <span class="v" id="row-duty-rate">5.5%</span>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-label">State Statutory Context</div>
+          <div class="statutory-box" id="statutory-context">
+            <div class="statutory-title" id="statutory-jurisdiction">
+              Australian Statutory Regime
+            </div>
+            <div id="statutory-duty-text">Loading jurisdiction...</div>
+            <div
+              id="statutory-authority-text"
+              style="margin-top: 6px; color: #93a1b2; font-size: 11px;"
+            ></div>
+          </div>
+
+          <div style="margin-top: 12px;">
+            <div class="row">
+              <span class="k">Projection / Datum</span>
+              <span class="v" id="feaso-mga">--</span>
+            </div>
+            <div class="row">
+              <span class="k">Parcel ID</span>
+              <span class="v" id="feaso-parcel">--</span>
+            </div>
+            <div class="row">
+              <span class="k">Site Area</span>
+              <span class="v" id="feaso-area">--</span>
+            </div>
+            <div class="row">
+              <span class="k">Yield (Lots / Dwellings)</span>
+              <span class="v" id="feaso-yield">--</span>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      (function () {
+        const APP_ID = 'feaso-os';
+        const aud = new Intl.NumberFormat('en-AU', {
+          style: 'currency',
+          currency: 'AUD',
+          maximumFractionDigits: 0,
+        });
+        const num = new Intl.NumberFormat('en-AU', { maximumFractionDigits: 0 });
+
+        const STATE_STATUTORY = {
+          NSW: {
+            jurisdiction: 'New South Wales (NSW)',
+            dutyLabel: 'NSW Transfer Duty (Revenue NSW)',
+            levyLabel: 'Housing & Productivity Contribution (HPC)',
+            authority: 'NSW Planning Portal • EP&A Act 1979 • Lot/DP Cadastre',
+            defaultDutyPct: 5.5,
+          },
+          VIC: {
+            jurisdiction: 'Victoria (VIC)',
+            dutyLabel: 'VIC Land Transfer Duty (SRO)',
+            levyLabel: 'GAIC / Windfall Gains Tax Allowance',
+            authority: 'VicPlan • Planning & Environment Act 1987 • SPI Cadastre',
+            defaultDutyPct: 6.5,
+          },
+          QLD: {
+            jurisdiction: 'Queensland (QLD)',
+            dutyLabel: 'QLD Transfer Duty (QRO)',
+            levyLabel: 'EDQ / Local Infrastructure Charges Notice',
+            authority: 'Planning Act 2016 • Lot on Plan (SP/RP) Cadastre',
+            defaultDutyPct: 5.75,
+          },
+          WA: {
+            jurisdiction: 'Western Australia (WA)',
+            dutyLabel: 'WA Transfer Duty (RevenueWA)',
+            levyLabel: 'WAPC / Metropolitan Region Improvement Tax',
+            authority: 'WAPC • Planning & Development Act 2005 • CT Cadastre',
+            defaultDutyPct: 5.15,
+          },
+          SA: {
+            jurisdiction: 'South Australia (SA)',
+            dutyLabel: 'SA Stamp Duty (RevenueSA)',
+            levyLabel: 'PlanSA Open Space & Infrastructure Levy',
+            authority: 'PlanSA • Planning & Design Code • CT Cadastre',
+            defaultDutyPct: 5.5,
+          },
+          TAS: {
+            jurisdiction: 'Tasmania (TAS)',
+            dutyLabel: 'TAS Property Transfer Duty (SRO)',
+            levyLabel: 'TasWater & Council Headworks',
+            authority: 'Tasmanian Planning Scheme • CT Cadastre',
+            defaultDutyPct: 4.5,
+          },
+          ACT: {
+            jurisdiction: 'Australian Capital Territory (ACT)',
+            dutyLabel: 'ACT Conveyance Duty (Revenue Office)',
+            levyLabel: 'Lease Variation Charge (LVC)',
+            authority: 'ACT Territory Plan • Block & Section / G-NAF',
+            defaultDutyPct: 5.0,
+          },
+          NT: {
+            jurisdiction: 'Northern Territory (NT)',
+            dutyLabel: 'NT Stamp Duty (Territory Revenue)',
+            levyLabel: 'NT Infrastructure Contribution Scheme',
+            authority: 'NT Planning Scheme 2020 • G-NAF Cadastre',
+            defaultDutyPct: 5.45,
+          },
+        };
+
+        const elSiteName = document.getElementById('feaso-site-name');
+        const elSiteMeta = document.getElementById('feaso-site-meta');
+        const elStateBadge = document.getElementById('feaso-state-badge');
+        const elRenderBadge = document.getElementById('feaso-render-badge');
+        const elRlvCard = document.getElementById('rlv-card');
+        const elRlvValue = document.getElementById('rlv-value');
+        const elRlvPerSqm = document.getElementById('rlv-per-sqm');
+        const elRlvPerHa = document.getElementById('rlv-per-ha');
+        const elTargetMargin = document.getElementById('target-margin');
+        const elSyncedEw = document.getElementById('synced-earthworks');
+        const elSyncBadge = document.getElementById('feaso-sync-badge');
+
+        const elRowGrv = document.getElementById('row-grv');
+        const elRowBase = document.getElementById('row-base-cost');
+        const elRowBulkEw = document.getElementById('row-bulk-ew');
+        const elRowRetaining = document.getElementById('row-retaining');
+        const elRowStatLabel = document.getElementById('row-statutory-label');
+        const elRowStat = document.getElementById('row-statutory');
+        const elRowDutyLabel = document.getElementById('row-duty-label');
+        const elRowDutyRate = document.getElementById('row-duty-rate');
+
+        const elStatJur = document.getElementById('statutory-jurisdiction');
+        const elStatDuty = document.getElementById('statutory-duty-text');
+        const elStatAuth = document.getElementById('statutory-authority-text');
+
+        const elMga = document.getElementById('feaso-mga');
+        const elParcel = document.getElementById('feaso-parcel');
+        const elArea = document.getElementById('feaso-area');
+        const elYield = document.getElementById('feaso-yield');
+
+        function postToHost(msg) {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage(msg, window.location.origin);
+          }
+        }
+
+        function setRenderState(active) {
+          if (active) {
+            elRenderBadge.className = 'pill pill-active';
+            elRenderBadge.dataset.renderState = 'ACTIVE';
+            elRenderBadge.textContent = 'Render Loop: ACTIVE';
+          } else {
+            elRenderBadge.className = 'pill pill-paused';
+            elRenderBadge.dataset.renderState = 'PAUSED';
+            elRenderBadge.textContent = 'Render Loop: PAUSED';
+          }
+        }
+
+        function renderProject(project, sourceLabel) {
+          if (!project) return;
+          const loc = project.location || {};
+          const geom = project.geometry || {};
+          const ew = project.earthworks || {};
+          const mass = project.massing || {};
+          const feas = project.feasibility || {};
+
+          const stateCode = loc.state || 'NSW';
+          const statInfo = STATE_STATUTORY[stateCode] || STATE_STATUTORY.NSW;
+
+          const grv = feas.grossRealisationAud ?? 45000000;
+          const targetMarginPct = feas.targetMarginPct ?? 20;
+          const dutyPct = feas.stampDutyRatePct ?? statInfo.defaultDutyPct;
+          const statutoryCost = feas.statutoryContributionsAud ?? 2500000;
+          const baseNonEwCost = feas.totalDevelopmentCostAud ?? 26000000;
+          const bulkEwCost = ew.bulkEarthworksCostAud ?? 0;
+          const retainingCost = ew.retainingWallCostAud ?? 0;
+          const totalEwCost = bulkEwCost + retainingCost;
+
+          // Live metric Residual Land Value calculation (AUD)
+          const maxAllowableTdc = grv / (1 + targetMarginPct / 100);
+          const preDutyRlv = maxAllowableTdc - (baseNonEwCost + totalEwCost);
+          const rlvAud = Math.round(preDutyRlv / (1 + dutyPct / 100));
+
+          const grossSqm = Math.max(1, geom.grossAreaSqm || 10000);
+          const grossHa = grossSqm / 10000;
+          const rlvPerSqm = Math.round(rlvAud / grossSqm);
+          const rlvPerHa = Math.round(rlvAud / grossHa);
+
+          elSiteName.textContent = project.name || 'Unnamed Site';
+          elSiteMeta.textContent =
+            (loc.lga || loc.address || 'Australia') +
+            ' • ' +
+            statInfo.jurisdiction;
+          elStateBadge.textContent =
+            stateCode + ' • MGA Zone ' + (loc.mgaZone || '--');
+
+          elRlvValue.textContent = aud.format(rlvAud) + ' AUD';
+          elRlvValue.dataset.rlvAud = String(rlvAud);
+          elRlvPerSqm.textContent = aud.format(rlvPerSqm) + ' / m²';
+          elRlvPerHa.textContent = aud.format(rlvPerHa) + ' / ha';
+          elTargetMargin.textContent = targetMarginPct.toFixed(1) + '%';
+          elSyncedEw.textContent = aud.format(totalEwCost) + ' AUD';
+
+          elRowGrv.textContent = aud.format(grv);
+          elRowBase.textContent = aud.format(baseNonEwCost);
+          elRowBulkEw.textContent = aud.format(bulkEwCost);
+          elRowRetaining.textContent = aud.format(retainingCost);
+          elRowStatLabel.textContent = statInfo.levyLabel;
+          elRowStat.textContent = aud.format(statutoryCost);
+          elRowDutyLabel.textContent = statInfo.dutyLabel;
+          elRowDutyRate.textContent = dutyPct.toFixed(2) + '%';
+
+          elStatJur.textContent = statInfo.jurisdiction;
+          elStatDuty.textContent =
+            statInfo.dutyLabel + ' • ' + statInfo.levyLabel;
+          elStatAuth.textContent = statInfo.authority;
+
+          elMga.textContent =
+            'Zone ' + (loc.mgaZone || '--') + ' (' + (loc.mgaEpsg || '--') + ')';
+          elParcel.textContent = geom.parcelId || 'N/A';
+          elArea.textContent =
+            num.format(grossSqm) + ' m² (' + grossHa.toFixed(2) + ' ha)';
+          elYield.textContent = mass.lotYield
+            ? num.format(mass.lotYield) + ' lots'
+            : '--';
+
+          if (sourceLabel) {
+            elSyncBadge.textContent = 'Synced via ' + sourceLabel;
+            elRlvCard.classList.add('flash');
+            setTimeout(() => elRlvCard.classList.remove('flash'), 450);
+          }
+        }
+
+        window.addEventListener('mousedown', () => {
+          postToHost({ type: 'APP_FOCUS', appId: APP_ID });
+        });
+
+        window.addEventListener('message', (event) => {
+          if (event.origin !== window.location.origin) return;
+          const msg = event.data;
+          if (!msg || typeof msg !== 'object') return;
+
+          if (msg.type === 'OS_INIT') {
+            renderProject(msg.project, 'OS_INIT');
+            setRenderState(msg.active !== false);
+          } else if (msg.type === 'OS_PROJECT_SYNC') {
+            renderProject(msg.project, msg.sourceAppId || 'OS_PROJECT_SYNC');
+          } else if (msg.type === 'OS_RENDER_STATE') {
+            setRenderState(Boolean(msg.active));
+          }
+        });
+
+        postToHost({ type: 'APP_READY', appId: APP_ID, version: '1.0.0' });
+      })();
+    </script>
+  </body>
+</html>

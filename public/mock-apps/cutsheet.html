@@ -1,0 +1,795 @@
+<!doctype html>
+<html lang="en-AU">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CutSheet AU — Terrain &amp; Civil Earthworks</title>
+    <style>
+      :root {
+        --bg: #10141a;
+        --surface: #161c24;
+        --surface-2: #1c2430;
+        --border: rgba(214, 226, 240, 0.12);
+        --accent: #3daee9;
+        --accent-soft: rgba(61, 174, 233, 0.16);
+        --emerald: #34d399;
+        --amber: #f59e0b;
+        --text: #e6edf3;
+        --muted: #93a1b2;
+        --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        --sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        min-height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .app {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        padding: 12px 14px;
+        max-width: 1040px;
+        margin: 0 auto;
+      }
+
+      .header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .title-block h1 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+
+      .subtitle {
+        margin-top: 2px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .badges {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-family: var(--mono);
+        font-size: 11px;
+        font-weight: 600;
+        border: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .pill-mga {
+        color: #7dd3fc;
+        border-color: rgba(61, 174, 233, 0.35);
+        background: rgba(61, 174, 233, 0.12);
+      }
+
+      .pill-active {
+        color: #6ee7b7;
+        border-color: rgba(52, 211, 153, 0.4);
+        background: rgba(16, 185, 129, 0.14);
+      }
+
+      .pill-paused {
+        color: #fcd34d;
+        border-color: rgba(245, 158, 11, 0.4);
+        background: rgba(245, 158, 11, 0.14);
+      }
+
+      .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: currentColor;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 10px;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 11px;
+        padding: 11px 13px;
+      }
+
+      .card-label {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .meta-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .metric-key {
+        font-size: 10px;
+        color: var(--muted);
+      }
+
+      .metric-val {
+        margin-top: 2px;
+        font-family: var(--mono);
+        font-size: 12px;
+        font-weight: 600;
+        color: #fff;
+      }
+
+      .terrain-box {
+        position: relative;
+        height: 112px;
+        border-radius: 9px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        background: radial-gradient(circle at 30% 25%, #172736 0%, #0d1218 75%);
+      }
+
+      .terrain-box canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .terrain-overlay {
+        position: absolute;
+        left: 10px;
+        bottom: 8px;
+        right: 10px;
+        display: flex;
+        justify-content: space-between;
+        font-family: var(--mono);
+        font-size: 10px;
+        color: #93a1b2;
+        pointer-events: none;
+      }
+
+      .control {
+        margin-bottom: 12px;
+      }
+
+      .control:last-child {
+        margin-bottom: 0;
+      }
+
+      .control-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+        font-size: 12px;
+      }
+
+      .control-top label {
+        color: #cbd5e1;
+        font-weight: 500;
+      }
+
+      .num-input {
+        width: 116px;
+        background: #0c1015;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        border-radius: 7px;
+        color: #fff;
+        font-family: var(--mono);
+        font-size: 12px;
+        padding: 4px 8px;
+        text-align: right;
+      }
+
+      .num-input:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+
+      input[type='range'] {
+        width: 100%;
+        accent-color: var(--accent);
+        cursor: pointer;
+      }
+
+      .cost-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 6px 0;
+        border-bottom: 1px solid rgba(214, 226, 240, 0.08);
+        font-size: 12px;
+      }
+
+      .cost-row:last-of-type {
+        border-bottom: none;
+      }
+
+      .cost-row strong {
+        font-family: var(--mono);
+        color: #fff;
+      }
+
+      .cost-total {
+        margin-top: 8px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(61, 174, 233, 0.28);
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+
+      .cost-total span {
+        font-size: 12px;
+        font-weight: 600;
+        color: #cbd5e1;
+      }
+
+      .cost-total strong {
+        font-family: var(--mono);
+        font-size: 18px;
+        color: #7dd3fc;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding-top: 4px;
+      }
+
+      .btn-primary {
+        appearance: none;
+        border: 1px solid rgba(61, 174, 233, 0.75);
+        background: linear-gradient(180deg, #3daee9 0%, #2b8fc5 100%);
+        color: #08121a;
+        font-family: var(--sans);
+        font-size: 13px;
+        font-weight: 700;
+        padding: 10px 16px;
+        border-radius: 9px;
+        cursor: pointer;
+        transition: filter 140ms ease, transform 100ms ease;
+      }
+
+      .btn-primary:hover {
+        filter: brightness(1.08);
+      }
+
+      .btn-primary:active {
+        transform: scale(0.985);
+      }
+
+      .sync-note {
+        font-family: var(--mono);
+        font-size: 11px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <header class="header">
+        <div class="title-block">
+          <h1 id="site-name">Awaiting SiteProject...</h1>
+          <div class="subtitle" id="site-address">
+            Connecting over @devaware/os-bridge
+          </div>
+        </div>
+
+        <div class="badges">
+          <span class="pill pill-mga" id="site-mga">GDA2020 • MGA</span>
+          <span
+            class="pill pill-active"
+            id="render-loop-badge"
+            data-testid="render-loop-badge"
+            data-render-state="ACTIVE"
+          >
+            <span class="dot"></span>
+            <span id="render-loop-text">Render Loop: ACTIVE</span>
+          </span>
+        </div>
+      </header>
+
+      <section class="card">
+        <div class="card-label">
+          <span>3D Terrain Cut/Fill Cross-Section Preview (WebGL Guarded)</span>
+          <span id="frame-counter" style="font-family: var(--mono); color: #7dd3fc;">
+            frame #0
+          </span>
+        </div>
+        <div class="terrain-box">
+          <canvas id="terrain-canvas" width="640" height="156"></canvas>
+          <div class="terrain-overlay">
+            <span id="site-state-chip">State: --</span>
+            <span id="site-area-chip">Gross Area: --</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="grid">
+        <section class="card">
+          <div class="card-label">
+            <span>Site Coordinate &amp; Cadastre Metadata</span>
+          </div>
+          <div class="meta-grid">
+            <div>
+              <div class="metric-key">State / Territory</div>
+              <div class="metric-val" id="site-state">--</div>
+            </div>
+            <div>
+              <div class="metric-key">MGA2020 Projection</div>
+              <div class="metric-val" id="site-epsg">--</div>
+            </div>
+            <div>
+              <div class="metric-key">Parcel Identifier</div>
+              <div class="metric-val" id="site-parcel">--</div>
+            </div>
+            <div>
+              <div class="metric-key">Gross Site Area</div>
+              <div class="metric-val" id="site-area">--</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-label">
+            <span>Metric Bulk Earthworks Controls</span>
+            <span style="font-family: var(--mono); font-size: 10px;">m³ / m / AUD</span>
+          </div>
+
+          <div class="control">
+            <div class="control-top">
+              <label for="cut-volume-input">Cut Volume (m³)</label>
+              <input
+                id="cut-volume-input"
+                type="number"
+                min="0"
+                max="150000"
+                step="500"
+                value="18400"
+                class="num-input"
+              />
+            </div>
+            <input
+              id="cut-volume-slider"
+              type="range"
+              min="0"
+              max="80000"
+              step="500"
+              value="18400"
+            />
+          </div>
+
+          <div class="control">
+            <div class="control-top">
+              <label for="fill-volume-input">Fill Volume (m³)</label>
+              <input
+                id="fill-volume-input"
+                type="number"
+                min="0"
+                max="150000"
+                step="500"
+                value="14950"
+                class="num-input"
+              />
+            </div>
+            <input
+              id="fill-volume-slider"
+              type="range"
+              min="0"
+              max="80000"
+              step="500"
+              value="14950"
+            />
+          </div>
+
+          <div class="control">
+            <div class="control-top">
+              <label for="retaining-length-input">Retaining Wall Length (m)</label>
+              <input
+                id="retaining-length-input"
+                type="number"
+                min="0"
+                max="5000"
+                step="10"
+                value="410"
+                class="num-input"
+              />
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="card">
+        <div class="card-label">
+          <span>Engineered Bulk Civil Cost Estimate (AUD)</span>
+          <span style="font-family: var(--mono); font-size: 10px;">
+            $38/m³ cut • $32/m³ fill • $45/m³ haul • $900/m retaining
+          </span>
+        </div>
+
+        <div class="cost-row">
+          <span>Net Cut / Fill Balance</span>
+          <strong id="net-balance-out">0 m³</strong>
+        </div>
+        <div class="cost-row">
+          <span>Bulk Earthworks (Cut, Fill &amp; Haulage)</span>
+          <strong id="bulk-cost-out">$0</strong>
+        </div>
+        <div class="cost-row">
+          <span>Retaining Wall Allowance</span>
+          <strong id="retaining-cost-out">$0</strong>
+        </div>
+
+        <div class="cost-total">
+          <span>Total Earthworks &amp; Retaining Package</span>
+          <strong id="total-earthworks-out">$0 AUD</strong>
+        </div>
+      </section>
+
+      <div class="actions">
+        <button
+          id="send-earthworks-btn"
+          type="button"
+          class="btn-primary"
+        >
+          Send Earthworks to Feasibility
+        </button>
+        <span class="sync-note" id="sync-status">
+          Ready to emit PROJECT_PATCH → Feaso OS
+        </span>
+      </div>
+    </main>
+
+    <script>
+      (function () {
+        const APP_ID = 'cutsheet-au';
+        const aud = new Intl.NumberFormat('en-AU', {
+          style: 'currency',
+          currency: 'AUD',
+          maximumFractionDigits: 0,
+        });
+        const num = new Intl.NumberFormat('en-AU', { maximumFractionDigits: 0 });
+
+        let currentProject = null;
+        let renderActive = true;
+        let frameCount = 0;
+        let animPhase = 0;
+        let rafId = null;
+
+        const elSiteName = document.getElementById('site-name');
+        const elSiteAddress = document.getElementById('site-address');
+        const elSiteMga = document.getElementById('site-mga');
+        const elSiteState = document.getElementById('site-state');
+        const elSiteEpsg = document.getElementById('site-epsg');
+        const elSiteParcel = document.getElementById('site-parcel');
+        const elSiteArea = document.getElementById('site-area');
+        const elSiteStateChip = document.getElementById('site-state-chip');
+        const elSiteAreaChip = document.getElementById('site-area-chip');
+        const elRenderBadge = document.getElementById('render-loop-badge');
+        const elRenderText = document.getElementById('render-loop-text');
+        const elFrameCounter = document.getElementById('frame-counter');
+
+        const elCutInput = document.getElementById('cut-volume-input');
+        const elCutSlider = document.getElementById('cut-volume-slider');
+        const elFillInput = document.getElementById('fill-volume-input');
+        const elFillSlider = document.getElementById('fill-volume-slider');
+        const elRetInput = document.getElementById('retaining-length-input');
+
+        const elNetBalance = document.getElementById('net-balance-out');
+        const elBulkCost = document.getElementById('bulk-cost-out');
+        const elRetCost = document.getElementById('retaining-cost-out');
+        const elTotalCost = document.getElementById('total-earthworks-out');
+        const elSyncStatus = document.getElementById('sync-status');
+        const elSendBtn = document.getElementById('send-earthworks-btn');
+
+        const canvas = document.getElementById('terrain-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function postToHost(msg) {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage(msg, window.location.origin);
+          }
+        }
+
+        function computeEarthworks() {
+          const cutVolumeM3 = Math.max(0, Number(elCutInput.value) || 0);
+          const fillVolumeM3 = Math.max(0, Number(elFillInput.value) || 0);
+          const retainingWallLengthM = Math.max(0, Number(elRetInput.value) || 0);
+
+          const netBalanceM3 = cutVolumeM3 - fillVolumeM3;
+          const importExportVolumeM3 = Math.abs(netBalanceM3);
+          const bulkEarthworksCostAud = Math.round(
+            cutVolumeM3 * 38 + fillVolumeM3 * 32 + importExportVolumeM3 * 45,
+          );
+          const retainingWallCostAud = Math.round(retainingWallLengthM * 900);
+
+          return {
+            cutVolumeM3,
+            fillVolumeM3,
+            netBalanceM3,
+            importExportVolumeM3,
+            bulkEarthworksCostAud,
+            retainingWallLengthM,
+            retainingWallCostAud,
+            totalPackageAud: bulkEarthworksCostAud + retainingWallCostAud,
+          };
+        }
+
+        function updateCostReadout() {
+          const ew = computeEarthworks();
+          const balanceTag =
+            ew.netBalanceM3 > 0
+              ? '+' + num.format(ew.netBalanceM3) + ' m³ (Export)'
+              : ew.netBalanceM3 < 0
+                ? num.format(ew.netBalanceM3) + ' m³ (Import)'
+                : '0 m³ (Balanced)';
+          elNetBalance.textContent = balanceTag;
+          elBulkCost.textContent = aud.format(ew.bulkEarthworksCostAud);
+          elRetCost.textContent = aud.format(ew.retainingWallCostAud);
+          elTotalCost.textContent = aud.format(ew.totalPackageAud) + ' AUD';
+          drawTerrainFrame();
+        }
+
+        function setRenderState(active) {
+          renderActive = Boolean(active);
+          if (renderActive) {
+            elRenderBadge.className = 'pill pill-active';
+            elRenderBadge.dataset.renderState = 'ACTIVE';
+            elRenderText.textContent = 'Render Loop: ACTIVE';
+            startLoop();
+          } else {
+            elRenderBadge.className = 'pill pill-paused';
+            elRenderBadge.dataset.renderState = 'PAUSED';
+            elRenderText.textContent = 'Render Loop: PAUSED';
+            stopLoop();
+            drawTerrainFrame();
+          }
+        }
+
+        function drawTerrainFrame() {
+          const w = canvas.width;
+          const h = canvas.height;
+          ctx.clearRect(0, 0, w, h);
+
+          // Subtle contour backdrop
+          ctx.strokeStyle = 'rgba(148, 163, 184, 0.14)';
+          ctx.lineWidth = 1;
+          for (let y = 24; y < h; y += 26) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(w, y);
+            ctx.stroke();
+          }
+
+          const ew = computeEarthworks();
+          const cutScale = Math.min(44, 12 + ew.cutVolumeM3 / 1400);
+          const fillScale = Math.min(44, 12 + ew.fillVolumeM3 / 1400);
+          const midY = h * 0.56;
+
+          // Design grade datum line
+          ctx.strokeStyle = 'rgba(61, 174, 233, 0.55)';
+          ctx.setLineDash([5, 5]);
+          ctx.beginPath();
+          ctx.moveTo(0, midY);
+          ctx.lineTo(w, midY);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          // Existing surface profile curve
+          ctx.beginPath();
+          ctx.moveTo(0, midY);
+          for (let x = 0; x <= w; x += 8) {
+            const t = x / w;
+            const wave =
+              Math.sin(t * Math.PI * 2 + animPhase * 0.35) * cutScale * (1 - t * 0.35) -
+              Math.cos(t * Math.PI * 1.5 - animPhase * 0.2) * (fillScale * 0.45);
+            ctx.lineTo(x, midY - wave * 0.72);
+          }
+          ctx.lineTo(w, h);
+          ctx.lineTo(0, h);
+          ctx.closePath();
+
+          const grad = ctx.createLinearGradient(0, 12, 0, h);
+          grad.addColorStop(0, renderActive ? 'rgba(61, 174, 233, 0.34)' : 'rgba(148, 163, 184, 0.2)');
+          grad.addColorStop(1, 'rgba(16, 20, 26, 0.08)');
+          ctx.fillStyle = grad;
+          ctx.fill();
+
+          ctx.beginPath();
+          for (let x = 0; x <= w; x += 8) {
+            const t = x / w;
+            const wave =
+              Math.sin(t * Math.PI * 2 + animPhase * 0.35) * cutScale * (1 - t * 0.35) -
+              Math.cos(t * Math.PI * 1.5 - animPhase * 0.2) * (fillScale * 0.45);
+            const y = midY - wave * 0.72;
+            if (x === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.strokeStyle = renderActive ? '#64d2ff' : '#94a3b8';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+
+        function tick() {
+          if (!renderActive) return;
+          frameCount += 1;
+          animPhase += 0.025;
+          elFrameCounter.textContent = 'frame #' + frameCount;
+          drawTerrainFrame();
+          rafId = window.requestAnimationFrame(tick);
+        }
+
+        function startLoop() {
+          if (rafId !== null) return;
+          rafId = window.requestAnimationFrame(tick);
+        }
+
+        function stopLoop() {
+          if (rafId !== null) {
+            window.cancelAnimationFrame(rafId);
+            rafId = null;
+          }
+        }
+
+        function applyProject(project) {
+          if (!project) return;
+          currentProject = project;
+          const loc = project.location || {};
+          const geom = project.geometry || {};
+          const ew = project.earthworks || {};
+
+          elSiteName.textContent = project.name || 'Unnamed Site';
+          elSiteAddress.textContent =
+            (loc.address || 'Australia') + (loc.lga ? ' • ' + loc.lga : '');
+          elSiteMga.textContent =
+            'MGA2020 Zone ' + (loc.mgaZone || '--') + ' • ' + (loc.mgaEpsg || '--');
+          elSiteState.textContent = loc.state || '--';
+          elSiteEpsg.textContent =
+            'Zone ' + (loc.mgaZone || '--') + ' (' + (loc.mgaEpsg || '--') + ')';
+          elSiteParcel.textContent = geom.parcelId || 'N/A';
+
+          const areaSqm = geom.grossAreaSqm || 0;
+          const areaHa = (areaSqm / 10000).toFixed(2);
+          elSiteArea.textContent = num.format(areaSqm) + ' m² (' + areaHa + ' ha)';
+          elSiteStateChip.textContent =
+            'State: ' + (loc.state || '--') + ' • ' + (loc.mgaEpsg || '--');
+          elSiteAreaChip.textContent =
+            'Gross Area: ' + num.format(areaSqm) + ' m² (' + areaHa + ' ha)';
+
+          const cutVal = ew.cutVolumeM3 ?? 15000;
+          const fillVal = ew.fillVolumeM3 ?? 12000;
+          const retVal = ew.retainingWallLengthM ?? 300;
+
+          elCutInput.value = String(cutVal);
+          elCutSlider.value = String(Math.min(80000, cutVal));
+          elFillInput.value = String(fillVal);
+          elFillSlider.value = String(Math.min(80000, fillVal));
+          elRetInput.value = String(retVal);
+
+          updateCostReadout();
+        }
+
+        elCutSlider.addEventListener('input', () => {
+          elCutInput.value = elCutSlider.value;
+          updateCostReadout();
+        });
+        elCutInput.addEventListener('input', () => {
+          elCutSlider.value = String(Math.min(80000, Number(elCutInput.value) || 0));
+          updateCostReadout();
+        });
+        elFillSlider.addEventListener('input', () => {
+          elFillInput.value = elFillSlider.value;
+          updateCostReadout();
+        });
+        elFillInput.addEventListener('input', () => {
+          elFillSlider.value = String(Math.min(80000, Number(elFillInput.value) || 0));
+          updateCostReadout();
+        });
+        elRetInput.addEventListener('input', updateCostReadout);
+
+        elSendBtn.addEventListener('click', () => {
+          const ew = computeEarthworks();
+          const siteLabel = currentProject ? currentProject.name : 'Active Site';
+
+          postToHost({
+            type: 'PROJECT_PATCH',
+            sourceAppId: APP_ID,
+            patch: {
+              earthworks: {
+                cutVolumeM3: ew.cutVolumeM3,
+                fillVolumeM3: ew.fillVolumeM3,
+                netBalanceM3: ew.netBalanceM3,
+                importExportVolumeM3: ew.importExportVolumeM3,
+                bulkEarthworksCostAud: ew.bulkEarthworksCostAud,
+                retainingWallLengthM: ew.retainingWallLengthM,
+                retainingWallCostAud: ew.retainingWallCostAud,
+                updatedByApp: APP_ID,
+              },
+            },
+          });
+
+          postToHost({
+            type: 'NOTIFY',
+            level: 'success',
+            title: 'Earthworks synced to Feasibility',
+            message:
+              siteLabel +
+              ': ' +
+              aud.format(ew.totalPackageAud) +
+              ' AUD (' +
+              num.format(ew.cutVolumeM3) +
+              ' m³ cut / ' +
+              num.format(ew.fillVolumeM3) +
+              ' m³ fill)',
+          });
+
+          elSyncStatus.textContent =
+            'Sent ' + aud.format(ew.totalPackageAud) + ' AUD to Feaso OS';
+        });
+
+        window.addEventListener('mousedown', () => {
+          postToHost({ type: 'APP_FOCUS', appId: APP_ID });
+        });
+
+        window.addEventListener('message', (event) => {
+          if (event.origin !== window.location.origin) return;
+          const msg = event.data;
+          if (!msg || typeof msg !== 'object') return;
+
+          if (msg.type === 'OS_INIT') {
+            applyProject(msg.project);
+            setRenderState(msg.active !== false);
+          } else if (msg.type === 'OS_PROJECT_SYNC') {
+            applyProject(msg.project);
+          } else if (msg.type === 'OS_RENDER_STATE') {
+            setRenderState(Boolean(msg.active));
+          }
+        });
+
+        // Initial bridge handshake
+        postToHost({ type: 'APP_READY', appId: APP_ID, version: '1.0.0' });
+      })();
+    </script>
+  </body>
+</html>
