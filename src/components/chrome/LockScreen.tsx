@@ -7,6 +7,7 @@ export function LockScreen() {
   const unlockWorkspace = useWindowStore((s) => s.unlockWorkspace);
   const timezone = useWindowStore((s) => s.timezone);
   const activeProject = useWindowStore((s) => s.activeProject);
+  const hasLoadedDeal = useWindowStore((s) => s.hasLoadedDeal);
 
   const [now, setNow] = useState(() => new Date());
   const [entering, setEntering] = useState(false);
@@ -137,8 +138,9 @@ export function LockScreen() {
           <span>EPSG:7849–7856</span>
         </div>
         <div className="font-mono-tech text-slate-300/80">
-          Active Context: {activeProject.name} ({activeProject.location.state} •{' '}
-          {activeProject.location.mgaEpsg})
+          {hasLoadedDeal
+            ? `Active Context: ${activeProject.name} (${activeProject.location.state} • ${activeProject.location.mgaEpsg})`
+            : 'National Workspace • Australia-Wide Ready'}
         </div>
       </footer>
     </main>

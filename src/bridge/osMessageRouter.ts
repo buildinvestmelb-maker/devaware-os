@@ -504,9 +504,13 @@ export function createOsMessageRouter(
           state.activeWindowId === senderEntry.windowId;
 
         senderEntry.lastRenderActive = active;
-        const initPayload =
-          senderEntry.appId === 'cutsheet-au'
-            ? buildCutSheetSitePayload(state.activeProject, win?.payload)
+        const shouldAutoFlyCutSheet =
+          senderEntry.appId === 'cutsheet-au' &&
+          Boolean(win?.payload?.explicitDealLoad);
+        const initPayload = shouldAutoFlyCutSheet
+          ? buildCutSheetSitePayload(state.activeProject, win?.payload)
+          : senderEntry.appId === 'cutsheet-au'
+            ? { theme: 'dark', ...(win?.payload ?? {}) }
             : win?.payload;
 
         postToEntry(
@@ -520,7 +524,9 @@ export function createOsMessageRouter(
             windowId: senderEntry.windowId,
             payload: initPayload,
           },
-          `active=${String(active)} • ${state.activeProject.name}`,
+          shouldAutoFlyCutSheet
+            ? `active=${String(active)} • ${state.activeProject.name}`
+            : `active=${String(active)} • Australia-wide view`,
         );
         break;
       }

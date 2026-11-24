@@ -234,6 +234,59 @@ test.describe('devaware-os Desktop E2E (1440x900)', () => {
 
     expect(errors).toEqual([]);
   });
+
+  test('floating app windows and desktop app icons can be dragged freely around the page', async ({
+    page,
+  }) => {
+    const errors = trackConsoleAndPageErrors(page);
+
+    await page.goto('/?unlocked=1');
+
+    // 1. Drag a desktop app icon across the desktop
+    const cutIcon = page.getByTestId('desktop-icon-cutsheet-au');
+    const iconBefore = await cutIcon.boundingBox();
+    expect(iconBefore).not.toBeNull();
+
+    await page.mouse.move(
+      iconBefore!.x + iconBefore!.width / 2,
+      iconBefore!.y + iconBefore!.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      iconBefore!.x + iconBefore!.width / 2 + 240,
+      iconBefore!.y + iconBefore!.height / 2 + 120,
+      { steps: 10 },
+    );
+    await page.mouse.up();
+
+    const iconAfter = await cutIcon.boundingBox();
+    expect(iconAfter).not.toBeNull();
+    expect(iconAfter!.x - iconBefore!.x).toBeGreaterThan(200);
+    expect(iconAfter!.y - iconBefore!.y).toBeGreaterThan(90);
+
+    // 2. Open a floating app window and drag it by its title bar
+    await page.getByTestId('panel-projects-btn').click();
+    const explorerWin = page.getByTestId('app-window-file-explorer');
+    await expect(explorerWin).toBeVisible();
+
+    const winBefore = await explorerWin.boundingBox();
+    expect(winBefore).not.toBeNull();
+
+    const dragStartX = winBefore!.x + 180;
+    const dragStartY = winBefore!.y + 20;
+
+    await page.mouse.move(dragStartX, dragStartY);
+    await page.mouse.down();
+    await page.mouse.move(dragStartX + 220, dragStartY + 110, { steps: 12 });
+    await page.mouse.up();
+
+    const winAfter = await explorerWin.boundingBox();
+    expect(winAfter).not.toBeNull();
+    expect(winAfter!.x - winBefore!.x).toBeGreaterThan(180);
+    expect(winAfter!.y - winBefore!.y).toBeGreaterThan(80);
+
+    expect(errors).toEqual([]);
+  });
 });
 
 test.describe('devaware-os Mobile Responsive Fallback (390x844)', () => {

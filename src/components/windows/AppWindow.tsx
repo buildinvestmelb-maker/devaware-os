@@ -87,8 +87,7 @@ export function AppWindow({ win }: AppWindowProps) {
         data-z-index={win.zIndex}
         aria-label={win.title}
         aria-hidden={win.minimized}
-        onMouseDown={(e) => {
-          e.stopPropagation();
+        onMouseDown={() => {
           if (!isActive) {
             focusWindow(win.windowId);
           }

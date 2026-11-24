@@ -89,6 +89,11 @@ interface PersistedWindowLayout {
   snapState: 'none' | 'left' | 'right';
 }
 
+export interface IconPosition {
+  x: number;
+  y: number;
+}
+
 interface PersistedWorkspaceV1 {
   schemaVersion: 1;
   pinnedApps: AppId[];
@@ -96,6 +101,7 @@ interface PersistedWorkspaceV1 {
   windows: PersistedWindowLayout[];
   activeWindowId: string | null;
   activeProjectId?: string;
+  iconPositions?: Partial<Record<AppId, IconPosition>>;
 }
 
 const VALID_TIMEZONES: ReadonlySet<AustralianTimezone> = new Set([
@@ -163,6 +169,20 @@ function loadPersistedWorkspace(): Partial<PersistedWorkspaceV1> | null {
         )
       : undefined;
 
+    const iconPositions: Partial<Record<AppId, IconPosition>> = {};
+    if (parsed.iconPositions && typeof parsed.iconPositions === 'object') {
+      for (const [key, val] of Object.entries(parsed.iconPositions)) {
+        if (
+          isRegisteredAppId(key) &&
+          val &&
+          typeof val.x === 'number' &&
+          typeof val.y === 'number'
+        ) {
+          iconPositions[key] = { x: val.x, y: val.y };
+        }
+      }
+    }
+
     return {
       schemaVersion: 1,
       pinnedApps,
@@ -174,6 +194,7 @@ function loadPersistedWorkspace(): Partial<PersistedWorkspaceV1> | null {
         typeof parsed.activeProjectId === 'string'
           ? parsed.activeProjectId
           : undefined,
+      iconPositions,
     };
   } catch {
     return null;
@@ -186,6 +207,7 @@ function savePersistedWorkspace(state: {
   windows: WindowInstance[];
   activeWindowId: string | null;
   activeProject: SiteProject;
+  iconPositions?: Partial<Record<AppId, IconPosition>>;
 }): void {
   if (typeof window === 'undefined' || !window.localStorage) return;
   try {
@@ -207,6 +229,7 @@ function savePersistedWorkspace(state: {
       })),
       activeWindowId: state.activeWindowId,
       activeProjectId: state.activeProject.projectId,
+      iconPositions: state.iconPositions,
     };
     window.localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(payload));
   } catch {
@@ -287,8 +310,10 @@ export interface WindowStoreState {
   activeWindowId: string | null;
   isDraggingOrResizing: boolean;
   activeProject: SiteProject;
+  hasLoadedDeal: boolean;
   lastProjectSyncSource: string | null;
   pinnedApps: AppId[];
+  iconPositions: Partial<Record<AppId, IconPosition>>;
   timezone: AustralianTimezone;
   toasts: ToastNotification[];
   notifications: ToastNotification[];
@@ -320,6 +345,7 @@ export interface WindowStoreState {
   closeWindow: (windowId: string) => void;
   updateWindowBounds: (windowId: string, bounds: Partial<WindowBounds>) => void;
   setDraggingOrResizing: (active: boolean) => void;
+  setIconPosition: (appId: AppId, pos: IconPosition) => void;
 
   setActiveProject: (project: SiteProject, sourceAppId?: string) => void;
   patchActiveProject: (
@@ -390,11 +416,13 @@ function buildInitialState() {
     activeWindowId,
     isDraggingOrResizing: false,
     activeProject: initialProject,
+    hasLoadedDeal: false,
     lastProjectSyncSource: 'init',
     pinnedApps:
       persisted?.pinnedApps && persisted.pinnedApps.length > 0
         ? persisted.pinnedApps
         : [...DEFAULT_PINNED_APPS],
+    iconPositions: persisted?.iconPositions ?? {},
     timezone: persisted?.timezone ?? ('auto' as AustralianTimezone),
     toasts: [] as ToastNotification[],
     notifications: [] as ToastNotification[],
@@ -586,6 +614,7 @@ export const useWindowStore = create<WindowStoreState>((set, get) => ({
       windows: finalWindows,
       activeWindowId: nextActiveId,
       activeProject: state.activeProject,
+      iconPositions: state.iconPositions,
     });
 
     return windowId;
@@ -622,6 +651,7 @@ export const useWindowStore = create<WindowStoreState>((set, get) => ({
       windows: finalWindows,
       activeWindowId: windowId,
       activeProject: state.activeProject,
+      iconPositions: state.iconPositions,
     });
   },
 
@@ -674,6 +704,7 @@ export const useWindowStore = create<WindowStoreState>((set, get) => ({
       windows: finalWindows,
       activeWindowId: nextActiveId,
       activeProject: state.activeProject,
+      iconPositions: state.iconPositions,
     });
   },
 
@@ -734,6 +765,7 @@ export const useWindowStore = create<WindowStoreState>((set, get) => ({
       windows: finalWindows,
       activeWindowId: windowId,
       activeProject: state.activeProject,
+      iconPositions: state.iconPositions,
     });
   },
 
@@ -788,6 +820,7 @@ export const useWindowStore = create<WindowStoreState>((set, get) => ({
       windows: finalWindows,
       activeWindowId: windowId,
       activeProject: state.activeProject,
+      iconPositions: state.iconPositions,
     });
   },
 
@@ -816,6 +849,7 @@ export const useWindowStore = create<WindowStoreState>((set, get) => ({
       windows: finalWindows,
       activeWindowId: nextActiveId,
       activeProject: state.activeProject,
+      iconPositions: state.iconPositions,
     });
   },
 
@@ -841,12 +875,33 @@ export const useWindowStore = create<WindowStoreState>((set, get) => ({
       windows: updated,
       activeWindowId: state.activeWindowId,
       activeProject: state.activeProject,
+      iconPositions: state.iconPositions,
     });
   },
 
   setDraggingOrResizing: (active) => {
     if (get().isDraggingOrResizing === active) return;
     set({ isDraggingOrResizing: active });
+  },
+
+  setIconPosition: (appId, pos) => {
+    const state = get();
+    const iconPositions = {
+      ...state.iconPositions,
+      [appId]: {
+        x: Math.max(8, Math.round(pos.x)),
+        y: Math.max(8, Math.round(pos.y)),
+      },
+    };
+    set({ iconPositions });
+    savePersistedWorkspace({
+      pinnedApps: state.pinnedApps,
+      timezone: state.timezone,
+      windows: state.windows,
+      activeWindowId: state.activeWindowId,
+      activeProject: state.activeProject,
+      iconPositions,
+    });
   },
 
   setActiveProject: (project, sourceAppId = 'devaware-os') => {
@@ -857,6 +912,7 @@ export const useWindowStore = create<WindowStoreState>((set, get) => ({
     const state = get();
     set({
       activeProject: cloned,
+      hasLoadedDeal: true,
       lastProjectSyncSource: sourceAppId,
     });
     savePersistedWorkspace({
@@ -865,6 +921,7 @@ export const useWindowStore = create<WindowStoreState>((set, get) => ({
       windows: state.windows,
       activeWindowId: state.activeWindowId,
       activeProject: cloned,
+      iconPositions: state.iconPositions,
     });
   },
 
@@ -873,6 +930,7 @@ export const useWindowStore = create<WindowStoreState>((set, get) => ({
     const merged = mergeSiteProject(state.activeProject, patch);
     set({
       activeProject: merged,
+      hasLoadedDeal: true,
       lastProjectSyncSource: sourceAppId,
     });
     savePersistedWorkspace({
@@ -881,6 +939,7 @@ export const useWindowStore = create<WindowStoreState>((set, get) => ({
       windows: state.windows,
       activeWindowId: state.activeWindowId,
       activeProject: merged,
+      iconPositions: state.iconPositions,
     });
     return merged;
   },
@@ -902,7 +961,7 @@ export const useWindowStore = create<WindowStoreState>((set, get) => ({
         width: halfWidth,
         height,
       },
-      payload: { dealId: project.projectId },
+      payload: { dealId: project.projectId, explicitDealLoad: true },
     });
 
     const cutsheetWindowId = get().openApp('cutsheet-au', {
@@ -915,7 +974,7 @@ export const useWindowStore = create<WindowStoreState>((set, get) => ({
         width: halfWidth,
         height,
       },
-      payload: { dealId: project.projectId },
+      payload: { dealId: project.projectId, explicitDealLoad: true },
     });
 
     get().pushToast({
@@ -941,6 +1000,7 @@ export const useWindowStore = create<WindowStoreState>((set, get) => ({
       windows: state.windows,
       activeWindowId: state.activeWindowId,
       activeProject: state.activeProject,
+      iconPositions: state.iconPositions,
     });
   },
 
@@ -953,6 +1013,7 @@ export const useWindowStore = create<WindowStoreState>((set, get) => ({
       windows: state.windows,
       activeWindowId: state.activeWindowId,
       activeProject: state.activeProject,
+      iconPositions: state.iconPositions,
     });
   },
 
@@ -1021,8 +1082,10 @@ export const useWindowStore = create<WindowStoreState>((set, get) => ({
       activeWindowId: null,
       isDraggingOrResizing: false,
       activeProject: freshProject,
+      hasLoadedDeal: false,
       lastProjectSyncSource: 'reset',
       pinnedApps: [...DEFAULT_PINNED_APPS],
+      iconPositions: {},
       timezone: 'auto',
       toasts: [],
       isLauncherOpen: false,

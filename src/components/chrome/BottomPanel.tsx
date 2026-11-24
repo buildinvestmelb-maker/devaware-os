@@ -18,6 +18,7 @@ export function BottomPanel() {
   const windows = useWindowStore((s) => s.windows);
   const activeWindowId = useWindowStore((s) => s.activeWindowId);
   const activeProject = useWindowStore((s) => s.activeProject);
+  const hasLoadedDeal = useWindowStore((s) => s.hasLoadedDeal);
   const timezone = useWindowStore((s) => s.timezone);
   const setTimezone = useWindowStore((s) => s.setTimezone);
   const notifications = useWindowStore((s) => s.notifications);
@@ -123,13 +124,19 @@ export function BottomPanel() {
         <div
           data-testid="panel-active-site"
           className="font-mono-tech hidden items-center gap-1.5 rounded-md border border-slate-500/20 bg-slate-900/55 px-2 py-1 text-[11px] text-slate-300 xl:flex"
-          title={`Active SiteProject: ${activeProject.name}`}
+          title={
+            hasLoadedDeal
+              ? `Active SiteProject: ${activeProject.name}`
+              : 'Australia-Wide Workspace (GDA2020)'
+          }
         >
           <span className="font-semibold text-[#7dd3fc]">
-            {activeProject.location.state}
+            {hasLoadedDeal ? activeProject.location.state : 'AU'}
           </span>
           <span className="text-slate-500">•</span>
-          <span>{activeProject.location.mgaEpsg}</span>
+          <span>
+            {hasLoadedDeal ? activeProject.location.mgaEpsg : 'GDA2020'}
+          </span>
         </div>
       </div>
 

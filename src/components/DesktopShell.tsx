@@ -72,7 +72,11 @@ export function DesktopShell() {
         <div
           id="desktop-stage"
           data-testid="desktop-stage"
-          onMouseDown={() => blurAllWindows()}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              blurAllWindows();
+            }
+          }}
           style={{ height: `calc(100vh - ${PANEL_HEIGHT_PX}px)` }}
           className="au-topo-wallpaper relative w-full overflow-hidden"
         >

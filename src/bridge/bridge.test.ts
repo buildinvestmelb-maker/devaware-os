@@ -307,7 +307,7 @@ describe('createOsMessageRouter handshake, origin rejection, debounce & OS_RENDE
     stop();
   });
 
-  it('bridges live CutSheet AU OS_INIT polygonGeoJson payload and OPEN_APP targetAppId=feasibility-calc earthworks sync', () => {
+  it('keeps direct CutSheet AU launch Australia-wide (no predetermined coordinates) and bridges explicit .deal loads + OPEN_APP feasibility-calc sync', () => {
     const cutOrigin = 'https://sifibettingv1.vercel.app';
     const router = createOsMessageRouter({
       originConfig: {
@@ -318,15 +318,42 @@ describe('createOsMessageRouter handshake, origin rejection, debounce & OS_RENDE
     });
     const stop = router.start();
 
-    const cutWinId = useWindowStore.getState().openApp('cutsheet-au');
+    // 1. Direct launch without explicitDealLoad must NOT send polygonGeoJson or lat/lng
+    const directCutWinId = useWindowStore.getState().openApp('cutsheet-au');
+    const directCutMock = createMockIframe();
+    router.registerIframe(
+      directCutWinId,
+      'cutsheet-au',
+      directCutMock.iframe,
+      cutOrigin,
+    );
+
+    router.handleMessageEvent(
+      new MessageEvent('message', {
+        origin: cutOrigin,
+        source: directCutMock.contentWindow,
+        data: { type: 'APP_READY', appId: 'cutsheet-au' },
+      }),
+    );
+
+    const directInit = directCutMock.posted[0].message as {
+      type: string;
+      payload?: Record<string, unknown>;
+    };
+    expect(directInit.type).toBe('OS_INIT');
+    expect(directInit.payload?.polygonGeoJson).toBeUndefined();
+    expect(directInit.payload?.lat).toBeUndefined();
+    expect(directInit.payload?.lng).toBeUndefined();
+
+    // 2. Explicit .deal launch sends polygonGeoJson + lat/lng
+    const cutWinId = useWindowStore.getState().openApp('cutsheet-au', {
+      payload: { dealId: 'deal-nsw-western-sydney', explicitDealLoad: true },
+    });
     const feasoWinId = useWindowStore
       .getState()
       .openApp('feaso-os', { focus: false });
 
-    const cutMock = createMockIframe();
     const feasoMock = createMockIframe();
-
-    router.registerIframe(cutWinId, 'cutsheet-au', cutMock.iframe, cutOrigin);
     router.registerIframe(
       feasoWinId,
       'feaso-os',
@@ -334,29 +361,29 @@ describe('createOsMessageRouter handshake, origin rejection, debounce & OS_RENDE
       '/mock-apps/feaso.html',
     );
 
-    // 1. Live CutSheet AU sends APP_READY -> receives OS_INIT with polygonGeoJson + lat/lng
     router.handleMessageEvent(
       new MessageEvent('message', {
         origin: cutOrigin,
-        source: cutMock.contentWindow,
+        source: directCutMock.contentWindow,
         data: { type: 'APP_READY', appId: 'cutsheet-au' },
       }),
     );
 
-    const initMsg = cutMock.posted[0].message as {
+    const dealInit = directCutMock.posted.at(-1)!.message as {
       type: string;
       payload?: Record<string, unknown>;
     };
-    expect(initMsg.type).toBe('OS_INIT');
-    expect(initMsg.payload?.polygonGeoJson).toBeDefined();
-    expect(typeof initMsg.payload?.lat).toBe('number');
-    expect(typeof initMsg.payload?.lng).toBe('number');
+    expect(cutWinId).toBe(directCutWinId);
+    expect(dealInit.type).toBe('OS_INIT');
+    expect(dealInit.payload?.polygonGeoJson).toBeDefined();
+    expect(typeof dealInit.payload?.lat).toBe('number');
+    expect(typeof dealInit.payload?.lng).toBe('number');
 
-    // 2. Live CutSheet AU dispatches OPEN_APP targetAppId='feasibility-calc'
+    // 3. Live CutSheet AU dispatches OPEN_APP targetAppId='feasibility-calc'
     router.handleMessageEvent(
       new MessageEvent('message', {
         origin: cutOrigin,
-        source: cutMock.contentWindow,
+        source: directCutMock.contentWindow,
         data: {
           type: 'OPEN_APP',
           targetAppId: 'feasibility-calc',
