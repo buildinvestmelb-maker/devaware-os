@@ -69,7 +69,8 @@ export function WindowContent({ win, isActive }: WindowContentProps) {
         className={`h-full w-full border-0 bg-[#0e1217] ${
           isDraggingOrResizing ? 'pointer-events-none select-none' : ''
         }`}
-        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+        allow="clipboard-read; clipboard-write; geolocation"
+        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads allow-modals"
       />
 
       {/* Mandatory Iframe Drag Shield during any window drag or resize */}

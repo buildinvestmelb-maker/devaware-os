@@ -136,7 +136,9 @@ export type ChildToHostMessage =
     }
   | {
       type: 'OPEN_APP';
-      appId: string;
+      appId?: string;
+      targetAppId?: string;
+      sourceAppId?: string;
       payload?: Record<string, unknown>;
     }
   | {
@@ -160,6 +162,10 @@ export type HostToChildMessage =
       appId: string;
       windowId: string;
       payload?: Record<string, unknown>;
+    }
+  | {
+      type: 'OS_PAYLOAD';
+      payload: Record<string, unknown>;
     }
   | {
       type: 'OS_PROJECT_SYNC';
@@ -191,7 +197,11 @@ export function isChildToHostMessage(data: unknown): data is ChildToHostMessage 
     case 'APP_FOCUS':
       return true;
     case 'OPEN_APP':
-      return typeof candidate.appId === 'string' && candidate.appId.length > 0;
+      return (
+        (typeof candidate.appId === 'string' && candidate.appId.length > 0) ||
+        (typeof candidate.targetAppId === 'string' &&
+          candidate.targetAppId.length > 0)
+      );
     case 'PROJECT_PATCH':
       return Boolean(candidate.patch && typeof candidate.patch === 'object');
     case 'NOTIFY':

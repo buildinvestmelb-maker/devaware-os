@@ -306,4 +306,87 @@ describe('createOsMessageRouter handshake, origin rejection, debounce & OS_RENDE
 
     stop();
   });
+
+  it('bridges live CutSheet AU OS_INIT polygonGeoJson payload and OPEN_APP targetAppId=feasibility-calc earthworks sync', () => {
+    const cutOrigin = 'https://sifibettingv1.vercel.app';
+    const router = createOsMessageRouter({
+      originConfig: {
+        hostOrigin: 'https://devaware-os.vercel.app',
+        registeredOrigins: [cutOrigin],
+        isDev: false,
+      },
+    });
+    const stop = router.start();
+
+    const cutWinId = useWindowStore.getState().openApp('cutsheet-au');
+    const feasoWinId = useWindowStore
+      .getState()
+      .openApp('feaso-os', { focus: false });
+
+    const cutMock = createMockIframe();
+    const feasoMock = createMockIframe();
+
+    router.registerIframe(cutWinId, 'cutsheet-au', cutMock.iframe, cutOrigin);
+    router.registerIframe(
+      feasoWinId,
+      'feaso-os',
+      feasoMock.iframe,
+      '/mock-apps/feaso.html',
+    );
+
+    // 1. Live CutSheet AU sends APP_READY -> receives OS_INIT with polygonGeoJson + lat/lng
+    router.handleMessageEvent(
+      new MessageEvent('message', {
+        origin: cutOrigin,
+        source: cutMock.contentWindow,
+        data: { type: 'APP_READY', appId: 'cutsheet-au' },
+      }),
+    );
+
+    const initMsg = cutMock.posted[0].message as {
+      type: string;
+      payload?: Record<string, unknown>;
+    };
+    expect(initMsg.type).toBe('OS_INIT');
+    expect(initMsg.payload?.polygonGeoJson).toBeDefined();
+    expect(typeof initMsg.payload?.lat).toBe('number');
+    expect(typeof initMsg.payload?.lng).toBe('number');
+
+    // 2. Live CutSheet AU dispatches OPEN_APP targetAppId='feasibility-calc'
+    router.handleMessageEvent(
+      new MessageEvent('message', {
+        origin: cutOrigin,
+        source: cutMock.contentWindow,
+        data: {
+          type: 'OPEN_APP',
+          targetAppId: 'feasibility-calc',
+          payload: {
+            siteAreaHa: 5.2,
+            ndaHa: 3.9,
+            cutM3: 29500,
+            fillM3: 18200,
+            netSpoilM3: 11300,
+            estimatedEarthworksAud: 2180000,
+            retainingWallCostAud: 420000,
+            siteName: 'Austral Live Parcel',
+            lga: 'Liverpool City Council',
+          },
+        },
+      }),
+    );
+
+    const updated = useWindowStore.getState().activeProject;
+    expect(updated.name).toBe('Austral Live Parcel');
+    expect(updated.earthworks?.cutVolumeM3).toBe(29500);
+    expect(updated.earthworks?.retainingWallCostAud).toBe(420000);
+    expect(updated.earthworks?.bulkEarthworksCostAud).toBe(1760000);
+    expect(updated.geometry.grossAreaSqm).toBe(52000);
+    expect(
+      feasoMock.posted.some(
+        (p) => (p.message as { type: string }).type === 'OS_PROJECT_SYNC',
+      ),
+    ).toBe(true);
+
+    stop();
+  });
 });

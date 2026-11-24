@@ -138,6 +138,113 @@ function getDefaultOriginConfig(): OriginAllowlistConfig {
   };
 }
 
+const EXTERNAL_APP_ID_ALIASES: Record<string, AppId> = {
+  'feasibility-calc': 'feaso-os',
+  'feaso-calc': 'feaso-os',
+  cutsheet: 'cutsheet-au',
+};
+
+function resolveBridgeAppId(rawId: string | undefined): AppId | null {
+  if (!rawId) return null;
+  if (isRegisteredAppId(rawId)) return rawId;
+  return EXTERNAL_APP_ID_ALIASES[rawId] ?? null;
+}
+
+function buildCutSheetSitePayload(
+  project: SiteProject,
+  extra?: Record<string, unknown>,
+): Record<string, unknown> {
+  return {
+    ...extra,
+    address: project.location.address,
+    lga: project.location.lga,
+    state: project.location.state,
+    lat: project.location.lat,
+    lng: project.location.lng,
+    mgaZone: project.location.mgaZone,
+    mgaEpsg: project.location.mgaEpsg,
+    polygonGeoJson: project.geometry.boundaryGeoJson,
+    theme: 'dark',
+  };
+}
+
+function extractEarthworksPatchFromExternalPayload(
+  payload: Record<string, unknown> | undefined,
+): DeepPartial<SiteProject> | null {
+  if (!payload) return null;
+  const hasCutSheetMetrics =
+    typeof payload.cutM3 === 'number' ||
+    typeof payload.fillM3 === 'number' ||
+    typeof payload.estimatedEarthworksAud === 'number' ||
+    typeof payload.retainingWallCostAud === 'number';
+
+  if (!hasCutSheetMetrics) return null;
+
+  const cutVolumeM3 =
+    typeof payload.cutM3 === 'number' ? payload.cutM3 : undefined;
+  const fillVolumeM3 =
+    typeof payload.fillM3 === 'number' ? payload.fillM3 : undefined;
+  const netBalanceM3 =
+    typeof payload.netSpoilM3 === 'number'
+      ? payload.netSpoilM3
+      : cutVolumeM3 !== undefined && fillVolumeM3 !== undefined
+        ? cutVolumeM3 - fillVolumeM3
+        : undefined;
+  const retainingWallCostAud =
+    typeof payload.retainingWallCostAud === 'number'
+      ? payload.retainingWallCostAud
+      : undefined;
+  const totalSiteworksAud =
+    typeof payload.estimatedEarthworksAud === 'number'
+      ? payload.estimatedEarthworksAud
+      : undefined;
+  // CutSheet's estimatedEarthworksAud includes retaining walls; separate bulk earthworks cleanly
+  const bulkEarthworksCostAud =
+    totalSiteworksAud !== undefined
+      ? Math.max(0, totalSiteworksAud - (retainingWallCostAud ?? 0))
+      : undefined;
+
+  const patch: DeepPartial<SiteProject> = {
+    earthworks: {
+      cutVolumeM3,
+      fillVolumeM3,
+      netBalanceM3,
+      importExportVolumeM3:
+        netBalanceM3 !== undefined ? Math.abs(netBalanceM3) : undefined,
+      bulkEarthworksCostAud,
+      retainingWallCostAud,
+      updatedByApp: 'cutsheet-au',
+    },
+  };
+
+  if (typeof payload.siteName === 'string' && payload.siteName.trim()) {
+    patch.name = payload.siteName.trim();
+  }
+  if (typeof payload.lga === 'string' && payload.lga.trim()) {
+    patch.location = { lga: payload.lga.trim() };
+  }
+  if (
+    typeof payload.siteAreaHa === 'number' ||
+    typeof payload.ndaHa === 'number' ||
+    typeof payload.parcelSpi === 'string'
+  ) {
+    patch.geometry = {
+      grossAreaSqm:
+        typeof payload.siteAreaHa === 'number'
+          ? Math.round(payload.siteAreaHa * 10000)
+          : undefined,
+      netDevelopableAreaSqm:
+        typeof payload.ndaHa === 'number'
+          ? Math.round(payload.ndaHa * 10000)
+          : undefined,
+      parcelId:
+        typeof payload.parcelSpi === 'string' ? payload.parcelSpi : undefined,
+    };
+  }
+
+  return patch;
+}
+
 export function createOsMessageRouter(
   options: CreateRouterOptions = {},
 ): OsMessageRouter {
@@ -228,6 +335,20 @@ export function createOsMessageRouter(
         message,
         `${project.name} (${project.location.state} / ${project.location.mgaEpsg})`,
       );
+      // Also push OS_PAYLOAD to external CutSheet AU instances when host switches sites
+      if (
+        entry.appId === 'cutsheet-au' &&
+        broadcastOptions.sourceAppId === 'file-explorer'
+      ) {
+        postToEntry(
+          entry,
+          {
+            type: 'OS_PAYLOAD',
+            payload: buildCutSheetSitePayload(project),
+          },
+          `Fly-to ${project.name} (${project.location.state})`,
+        );
+      }
     }
   };
 
@@ -354,13 +475,16 @@ export function createOsMessageRouter(
       direction: 'inbound',
       messageType: message.type,
       origin: event.origin,
-      appId: senderEntry?.appId ?? ('appId' in message ? message.appId : undefined),
+      appId:
+        senderEntry?.appId ??
+        ('sourceAppId' in message ? message.sourceAppId : undefined) ??
+        ('appId' in message ? message.appId : undefined),
       windowId: senderEntry?.windowId,
       summary:
         message.type === 'NOTIFY'
           ? message.title
           : message.type === 'OPEN_APP'
-            ? `Target: ${message.appId}`
+            ? `Target: ${message.appId ?? message.targetAppId ?? 'unknown'}`
             : message.type === 'PROJECT_PATCH'
               ? `Keys: ${Object.keys(message.patch).join(', ')}`
               : undefined,
@@ -380,6 +504,11 @@ export function createOsMessageRouter(
           state.activeWindowId === senderEntry.windowId;
 
         senderEntry.lastRenderActive = active;
+        const initPayload =
+          senderEntry.appId === 'cutsheet-au'
+            ? buildCutSheetSitePayload(state.activeProject, win?.payload)
+            : win?.payload;
+
         postToEntry(
           senderEntry,
           {
@@ -389,7 +518,7 @@ export function createOsMessageRouter(
             active,
             appId: senderEntry.appId,
             windowId: senderEntry.windowId,
-            payload: win?.payload,
+            payload: initPayload,
           },
           `active=${String(active)} • ${state.activeProject.name}`,
         );
@@ -404,16 +533,41 @@ export function createOsMessageRouter(
       }
 
       case 'OPEN_APP': {
-        if (!isRegisteredAppId(message.appId)) {
+        const rawTarget = message.appId ?? message.targetAppId;
+        const resolvedTargetId = resolveBridgeAppId(rawTarget);
+        if (!resolvedTargetId) {
           logBus({
             direction: 'rejected',
             messageType: 'OPEN_APP',
             origin: event.origin,
-            reason: `Unregistered appId "${message.appId}"`,
+            reason: `Unregistered appId "${rawTarget ?? ''}"`,
           });
           return;
         }
-        const targetWindowId = state.openApp(message.appId, {
+
+        // If CutSheet AU dispatched live earthworks metrics via OPEN_APP -> feasibility-calc,
+        // apply them directly into activeProject so Feaso OS & Inspector update immediately.
+        const externalPatch = extractEarthworksPatchFromExternalPayload(
+          message.payload,
+        );
+        if (externalPatch) {
+          const updated = state.patchActiveProject(
+            externalPatch,
+            senderEntry?.appId ?? message.sourceAppId ?? 'cutsheet-au',
+          );
+          broadcastProjectSync(updated, {
+            excludeWindowId: senderEntry?.windowId,
+            sourceAppId: senderEntry?.appId ?? 'cutsheet-au',
+          });
+          state.pushToast({
+            level: 'success',
+            title: 'Earthworks synced from CutSheet AU',
+            message: `${updated.name} updated in Feaso OS`,
+          });
+        }
+
+        const targetWindowId = state.openApp(resolvedTargetId, {
+          reuseExisting: resolvedTargetId === 'feaso-os' && Boolean(externalPatch),
           payload: message.payload,
         });
         const targetEntry = iframes.get(targetWindowId);
@@ -422,15 +576,12 @@ export function createOsMessageRouter(
           postToEntry(
             targetEntry,
             {
-              type: 'OS_INIT',
-              theme: 'dark',
+              type: 'OS_PROJECT_SYNC',
               project: updatedState.activeProject,
-              active: updatedState.activeWindowId === targetWindowId,
-              appId: targetEntry.appId,
-              windowId: targetWindowId,
-              payload: message.payload,
+              sourceAppId: senderEntry?.appId ?? 'devaware-os',
+              updatedAt: updatedState.activeProject.updatedAt,
             },
-            'Forwarded OPEN_APP payload to existing instance',
+            'Synced OPEN_APP earthworks payload to existing instance',
           );
         }
         syncRenderStates('focus');
